@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<link rel="stylesheet" type="text/css" href="style.css">
+		<meta HTTP-EQUIV="EXPIRES" CONTENT="-1">
+		<title>Computing Science 309 Warehouse Wars</title>
+		<script language="javascript" src="jquery-3.3.1.min.js" > </script>
+		<script language="javascript" src="ww.js" > </script>
+		<script language="javascript" src="modifyview.js" > </script>
+		<script language="javascript" src="login.js" > </script>
+
+		<script>
+		gameStep=null;
+		stage=null;
+		gameStart=0;
+		// SOME GLUE CODE CONNECTING THIS PAGE TO THE STAGE
+		interval=1000;
+		score=5000;
+		level=[];
+
+		function setupGame(){
+			stage=new Stage(20,20,"stage");
+			stage.initialize();
+			$.get("stage/s2.txt", function(data) {
+			 level = data.split('\n');
+			 stage.loadLevel(level);
+		 });
+		}
+		function startGame(){
+			gameStart = 1;
+			renderStage();
+			gameStep = setInterval(function(){ mobsMove() }, interval);
+		}
+		function mobsMove(){
+			if (stage.step() == "win"){
+				pauseGame();
+				winner();
+				return;
+			}
+			if (stage.step() == "gameover"){
+				gameover();
+				return;
+			}
+			if (score > 0){
+				score = score -15;
+			}
+			updateScore();
+			renderStage();
+		}
+		function winner(){
+			// To get # of scores in DB.
+			getScoreId();
+			var num = document.getElementById("temp").value;
+			// Save score in text.
+			document.getElementById("temp2").value = score;
+
+			var img = document.createElement("img");
+			img.src = "http://i.imgur.com/rkxeQPC.gif";
+			if(img && img.style) {
+					img.style.height = '800px';
+					img.style.width = '1000px';
+			}
+			$('#stage').html(img);
+			// To create a Score Tuple in Highscore DB.
+			createScore();
+			var num = parseInt(document.getElementById("profilewin").value) + 1;
+			document.getElementById("profilewin").value = num;
+			incrementWin();
+		}
+
+		function gameover(){
+			pauseGame();
+			score = 0;
+			updateScore();
+			var img = document.createElement("img");
+			img.src = "http://moziru.com/images/deadth-clipart-transparent-14.png";
+			if(img && img.style) {
+					img.style.height = '800px';
+					img.style.width = '1000px';
+			}
+			$('#stage').html(img);
+		}
+		function updateScore(){
+			document.getElementById("score").innerHTML = score;
+		}
+		function renderStage(){
+			var img = document.createElement("img");
+			var tableBody = $(document.createElement('tbody'));
+			var row = $(document.createElement('tr'));
+			//Create a prototype of the type of cell we want
+			//In each cell we shall display the text "Cell"
+			for (var i = 0; i < 20; i++)
+			{
+				var newRow = row.clone();
+				tableBody.append(newRow);
+				for (var j = 0; j < 20; j++){
+					img.src = stage.getStageId(j,i);
+					if(img && img.style) {
+							img.style.height = '40px';
+							img.style.width = '40px';
+					}
+					var cell = $(document.createElement('td')).html(img);
+					newRow.append(cell.clone());
+				}
+			}
+			$('#stage').html(tableBody);
+		}
+		function pauseGame(){
+			clearInterval(gameStep);
+		}
+		function move_player(direction) {
+			var gameStatus = stage.player.move(stage, direction);
+			if (gameStatus == "gameover"){
+				gameover();
+				return;
+			}
+			renderStage();
+		}
+
+		document.addEventListener('keydown', function(event) {
+			if (gameStart == 1){
+				if(event.keyCode == 65) {
+					move_player('west');
+				}
+				else if(event.keyCode == 68) {
+					move_player('east');
+				}
+				else if(event.keyCode == 87) {
+					move_player('north');
+				}
+				else if(event.keyCode == 88) {
+					move_player('south');
+				}
+				else if(event.keyCode == 81) {
+					move_player('north_west');
+				}
+				else if(event.keyCode == 69) {
+					move_player('north_east');
+				}
+				else if(event.keyCode == 90) {
+					move_player('south_west');
+				}
+				else if(event.keyCode == 67) {
+					move_player('south_east');
+				}
+			}
+		});
+
+			$(function(){
+				setupGame();
+				//startGame();
+			});
+		</script>
+	</head>
+	<body bgcolor="ffffff">
+		<center>
+
+			<h1 id = "headerbanner">Warehouse Wars</h1>
+			<div class = "login">
+				<h1>Login</h1>
+			</div>
+			<div class = "register">
+				<h1>Register</h1>
+			</div>
+			<table class = "stageElements">
+				<tr>
+					<td> <div id="stage"> </div></td>
+					<td>
+						<center>
+							<h2>Legend</h2>
+							<table>
+								<tr>
+									<td> <img src="icons/blank.gif" id="blankImage" /> </td>
+									<td> <img src="icons/emblem-package-2-24.png" id="boxImage" /> </td>
+									<td> <img src="icons/face-cool-24.png" id="playerImage" /> </td>
+									<td> <img src="icons/face-devil-grin-24.png" id="monsterImage" /> </td>
+									<td> <img src="icons/slime.png" id="slimeImage" /> </td>
+									<td> <img src="icons/wall.jpeg" id="wallImage" /> </td>
+								</tr>
+								<tr>
+									<td> Empty <br/> Square </td>
+									<td> Box </td>
+									<td> Player </td>
+									<td> Devil </td>
+									<td> Slime </td>
+									<td> Wall </td>
+								</tr>
+							</table>
+							<h2>Controls</h2>
+							<table class="click controls">
+								<tr>
+									<td><img src="icons/north_west.svg" onclick="move_player('north_west');" /></td>
+									<td><img src="icons/north.svg" onclick="move_player('north');"/></td>
+									<td><img src="icons/north_east.svg" onclick="move_player('north_east');"  /></td>
+								</tr>
+								<tr>
+									<td><img src="icons/west.svg" onclick="move_player('west');"  /></td>
+									<td>&nbsp;</td>
+									<td><img src="icons/east.svg" onclick="move_player('east');"  /></td>
+								</tr>
+								<tr>
+									<td><img src="icons/south_west.svg" onclick="move_player('south_west');"  /></td>
+									<td><img src="icons/south.svg" onclick="move_player('south');"  /></td>
+									<td><img src="icons/south_east.svg" onclick="move_player('south_east');"  /></td>
+								</tr>
+							</table>
+							<table class="keyboard controls">
+								<h2>Keyboard Controls</h2>
+								<tr>
+									<td>q-NW</td>
+									<td>w-N</td>
+									<td>e-NE</td>
+								</tr>
+								<tr>
+									<td>a-E</td>
+									<td>&nbsp;</td>
+									<td>d-W</td>
+								</tr>
+								<tr>
+									<td>z-SW</td>
+									<td>x-S</td>
+									<td>c-SE</td>
+								</tr>
+							</table>
+						</center>
+						<center>
+							<table class=store>
+								<h2>Score</h2>
+								<tr>
+									<td>
+										Score
+									</td>
+									<td id="score">
+										5000
+									</td>
+								</tr>
+								<tr>
+									<td>
+									<input type="button" name="logout" class="logout" value="Logout"/>
+								</td>
+								</tr>
+							</table>
+						</center>
+					</td>
+				</tr>
+			</table>
+			<table>
+				<tr>
+					<td> <div id="scoreboard">
+
+						<h2 id="scoreheader">Top Scores</h2>
+
+						<table id="scoretable">
+							<tr>
+								<th>Place</th>
+								<th>Player</th>
+								<th>Score</th>
+							</tr>
+							<tr>
+								<td>#1</td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="name0" id="name0"/> </td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="score0" id="score0"/> </td>
+							</tr>
+							<tr>
+								<td>#2</td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="name1" id="name1"/> </td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="score1" id="score1"/> </td>
+							</tr>
+							<tr>
+								<td>#3</td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="name2" id="name2"/> </td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="score2" id="score2"/> </td>
+							</tr>
+							<tr>
+								<td>#4</td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="name3" id="name3"/> </td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="score3" id="score3"/> </td>
+							</tr>
+							<tr>
+								<td>#5</td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="name4" id="name4"/> </td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="score4" id="score4"/> </td>
+							</tr>
+
+							<tr>
+								<td>#6</td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="name5" id="name5"/> </td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="score5" id="score5"/> </td>
+							</tr>
+							<tr>
+								<td>#7</td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="name6" id="name6"/> </td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="score6" id="score6"/> </td>
+							</tr>
+
+							<tr>
+								<td>#8</td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="name7" id="name7"/> </td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="score7" id="score7"/> </td>
+							</tr>
+							<tr>
+								<td>#9</td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="name8" id="name8"/> </td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="score8" id="score8"/> </td>
+							</tr>
+							<tr>
+								<td>#10</td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="name9" id="name9"/> </td>
+								<td> <input type="text" value = "" readonly= "true" style ="border: none" name="score9" id="score9"/> </td>
+							</tr>
+						</table>
+					</div></td>
+				</tr>
+			</table>
+			<table class="profile">
+				<td>
+					<h1>Update Profile</h1>
+					<tr><th><label for="profileusername">User</label></th><td> <input type="text" name="profileuser" id="profileuser"/></td></tr>
+					<tr><th><label for="profilepassword">Password</label></th><td> <input type="password" name="profilepass" id="profilepass"/></td></tr>
+					<tr><th><label for="profileemail">Profile Email</label></th><td> <input type="text" name="profileemail" id="profileemail"/></td></tr>
+					<tr><th><label for="profilewin">Wins</label></th><td> <input type="text" name="profilewin" id="profilewin"/></td></tr>
+					<tr><th>&nbsp;</th><td><input type="submit" name="login" value="Update" id="profilebutton"/></td></tr>
+					<tr><th>&nbsp;</th><td><input type="submit" name="login" value="To Stage" id="tostage" onclick="startGame();"/></td></tr>
+					<tr><th>&nbsp;</th><td><input type="submit" name="login" value="Logout" class="logout" /></td></tr>
+					<tr><th>&nbsp;</th><td><input type="submit" name="login" value="DELETE ACCOUNT" id="accdelete" onclick="startGame();"/></td></tr>
+				</td>
+			</table>
+			<table class="login">
+				<td><div>
+					<tr><th><label for="logusername">User</label></th><td> <input type="text" name="loguser" id="loguser"/></td></tr>
+					<tr><th><label for="logpassword">Password</label></th><td> <input type="password" name="logpass" id="logpass"/></td></tr>
+					<tr><th>&nbsp;</th><td><input type="submit" name="login" value="Login" id="loginbutton"/></td></tr>
+					<tr><th>&nbsp;</th><td><input type="submit" name="login" value="To Register" id="toregister"/></td></tr>
+				</div></td>
+			</table>
+			<table class="register">
+				<td><div>
+					<tr><th><label for="regusername">User</label></th><td> <input type="text" name="reguser" id="reguser"/></td></tr>
+					<tr><th><label for="regpassword">Password</label></th><td> <input type="password" name="regpass" id="regpass"/></td></tr>
+					<tr><th>&nbsp;</th><td><input type="submit" name="login" value="Register" id="registerbutton"/></td></tr>
+					<tr><th>&nbsp;</th><td><input type="submit" name="login" value="To Login" id="tologin"/></td></tr>
+				</div></td>
+			</table>
+			<input type="text" name="temp" id="temp"/>
+			<input type="text" name="temp2" id="temp2"/>
+		</center>
+	</body>
+</html>
